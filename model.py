@@ -1,27 +1,31 @@
-import torch
-from torch import nn
+import torch.nn as nn
+import torch.nn.functional as F
 
 
-class SmallCNN(nn.Module):
-    """Small CNN for MNIST digit classification."""
+class ConvNet(nn.Module):
+    """ConvNet for MNIST, following the PyTorch tutorial structure."""
 
     def __init__(self):
         super().__init__()
-        self.features = nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-            nn.Conv2d(16, 32, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-        )
-        self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(32 * 7 * 7, 128),
-            nn.ReLU(),
-            nn.Linear(128, 10),
-        )
+        # input: 1 x 28 x 28
+        self.conv1 = nn.Conv2d(1, 10, 5)  # 10 x 24 x 24
+        self.conv2 = nn.Conv2d(10, 20, 3)  # 20 x 10 x 10 after conv1 pool
+        self.fc1 = nn.Linear(20 * 10 * 10, 500)
+        self.fc2 = nn.Linear(500, 10)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.features(x)
-        return self.classifier(x)
+    def forward(self, x):
+        in_size = x.size(0)
+        out = self.conv1(x)
+        out = F.relu(out)
+        out = F.max_pool2d(out, 2, 2)  # 10 x 12 x 12
+        out = self.conv2(out)
+        out = F.relu(out)  # 20 x 10 x 10
+        out = out.view(in_size, -1)
+        out = self.fc1(out)
+        out = F.relu(out)
+        out = self.fc2(out)
+        return F.log_softmax(out, dim=1)
+
+
+# Backward-compatible alias for older runs in this project.
+Net = ConvNet

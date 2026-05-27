@@ -1,33 +1,36 @@
 from pathlib import Path
 
 import torch
-from torch import nn
+import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
-from model import SmallCNN
+from model import ConvNet
 from utils import (
     evaluate,
     generate_report,
-    plot_curves,
+    plot_accuracy_curve,
+    plot_loss_curve,
+    save_ground_truth_examples,
     save_metrics,
+    save_prediction_examples,
     set_seed,
-    train_one_epoch,
+    train_epoch,
 )
 
 
 def main():
-    seed = 42
-    batch_size = 64
-    epochs = 10
-    learning_rate = 0.001
+    batch_size = 512
+    n_epochs = 20
+    log_interval = 30
+    random_seed = 1
 
     base_dir = Path(__file__).resolve().parent
     data_dir = base_dir / "data"
     outputs_dir = base_dir / "outputs"
     outputs_dir.mkdir(parents=True, exist_ok=True)
 
-    set_seed(seed)
+    set_seed(random_seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     transform = transforms.Compose(
@@ -37,68 +40,100 @@ def main():
         ]
     )
 
-    train_dataset = datasets.MNIST(
-        root=data_dir,
-        train=True,
-        download=True,
-        transform=transform,
+    train_loader = DataLoader(
+        datasets.MNIST(
+            data_dir,
+            train=True,
+            download=True,
+            transform=transform,
+        ),
+        batch_size=batch_size,
+        shuffle=True,
     )
-    test_dataset = datasets.MNIST(
-        root=data_dir,
-        train=False,
-        download=True,
-        transform=transform,
+    test_loader = DataLoader(
+        datasets.MNIST(
+            data_dir,
+            train=False,
+            download=True,
+            transform=transform,
+        ),
+        batch_size=batch_size,
+        shuffle=True,
     )
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    examples = enumerate(test_loader)
+    _, (example_data, example_targets) = next(examples)
+    print(example_targets)
+    print(example_data.shape)
 
-    model = SmallCNN().to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    sample_ground_truth_path = outputs_dir / "sample_ground_truth.png"
+    save_ground_truth_examples(example_data, example_targets, sample_ground_truth_path)
 
-    metrics = []
-    for epoch in range(1, epochs + 1):
-        train_loss, train_acc = train_one_epoch(
-            model, train_loader, criterion, optimizer, device
-        )
-        test_loss, test_acc = evaluate(model, test_loader, criterion, device)
+    network = ConvNet().to(device)
+    optimizer = optim.Adam(network.parameters())
 
-        row = {
-            "epoch": epoch,
-            "train_loss": train_loss,
-            "train_acc": train_acc,
-            "test_loss": test_loss,
-            "test_acc": test_acc,
-        }
-        metrics.append(row)
+    train_losses = []
+    train_counter = []
+    test_losses = []
+    test_counter = [i * len(train_loader.dataset) for i in range(n_epochs + 1)]
 
-        print(
-            f"Epoch [{epoch}/{epochs}] "
-            f"Train Loss: {train_loss:.4f} "
-            f"Train Acc: {train_acc:.4f} "
-            f"Test Loss: {test_loss:.4f} "
-            f"Test Acc: {test_acc:.4f}"
-        )
-
+    checkpoint_path = outputs_dir / "checkpoint.pth"
+    model_path = outputs_dir / "mnist_cnn.pth"
+    optimizer_path = outputs_dir / "optimizer.pth"
     metrics_path = outputs_dir / "metrics.csv"
     loss_curve_path = outputs_dir / "loss_curve.png"
     accuracy_curve_path = outputs_dir / "accuracy_curve.png"
-    model_path = outputs_dir / "mnist_cnn.pth"
+    sample_predictions_path = outputs_dir / "sample_predictions.png"
     report_path = outputs_dir / "report.md"
 
+    initial_test_loss, initial_test_acc = evaluate(
+        network,
+        test_loader,
+        device,
+        test_losses,
+    )
+
+    metrics = []
+    for epoch in range(1, n_epochs + 1):
+        train_loss, train_acc = train_epoch(
+            network,
+            train_loader,
+            optimizer,
+            device,
+            epoch,
+            log_interval,
+            train_losses,
+            train_counter,
+            checkpoint_path,
+        )
+        test_loss, test_acc = evaluate(network, test_loader, device, test_losses)
+        metrics.append(
+            {
+                "epoch": epoch,
+                "train_loss": train_loss,
+                "train_acc": train_acc,
+                "test_loss": test_loss,
+                "test_acc": test_acc,
+            }
+        )
+
+    torch.save(network.state_dict(), model_path)
+    torch.save(optimizer.state_dict(), optimizer_path)
     save_metrics(metrics, metrics_path)
-    plot_curves(metrics, loss_curve_path, accuracy_curve_path)
-    torch.save(model.state_dict(), model_path)
+    plot_loss_curve(train_counter, train_losses, test_counter, test_losses, loss_curve_path)
+    plot_accuracy_curve(metrics, accuracy_curve_path)
+    save_prediction_examples(network, example_data, device, sample_predictions_path)
     generate_report(
         metrics_path,
         report_path,
         {
             "batch_size": batch_size,
-            "epochs": epochs,
-            "learning_rate": learning_rate,
+            "epochs": n_epochs,
+            "log_interval": log_interval,
+            "random_seed": random_seed,
             "device": str(device),
-            "seed": seed,
+            "initial_test_loss": initial_test_loss,
+            "initial_test_acc": initial_test_acc,
         },
     )
 
@@ -109,7 +144,11 @@ def main():
         metrics_path,
         loss_curve_path,
         accuracy_curve_path,
+        sample_ground_truth_path,
+        sample_predictions_path,
         model_path,
+        optimizer_path,
+        checkpoint_path,
         report_path,
     ]:
         print(f"- {path}")
