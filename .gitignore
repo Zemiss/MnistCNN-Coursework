@@ -1,0 +1,27 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+myenv/
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# MNIST downloaded data
+data/
+
+# Generated experiment artifacts
+outputs/*.pth
+outputs/*.pt
+
+# Temporary files
+*.tmp
+*.log
