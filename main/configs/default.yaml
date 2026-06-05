@@ -1,18 +1,19 @@
-train_data_dir: ../data
-outputs_dir: outputs
-model_path: model/mnist_cnn.pth
+paths:
+  train_data_dir: ../data
+  outputs_dir: outputs
+  model_path: model/mnist_cnn.pth
+  test_data_dir: null
 
-# 训练参数
-batch_size: 512
-n_epochs: 20
-log_interval: 30
-random_seed: 1
+train:
+  batch_size: 512
+  epochs: 20
+  log_interval: 30
+  seed: 1
 
-# 测试参数
-test_data_dir: null
-use_mnist: false
-num_samples: 10
+test:
+  use_mnist: false
+  num_samples: 10
 
-# 优化器参数
-optimizer: adam
-learning_rate: 0.001
+optimizer:
+  name: adam
+  learning_rate: 0.001
