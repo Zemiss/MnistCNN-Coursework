@@ -27,7 +27,6 @@ def train_epoch(
     log_interval: int,
     train_losses: list,
     train_counter: list,
-    checkpoint_path: Path,
 ):
     model.train()
     running_loss = 0.0
@@ -64,14 +63,6 @@ def train_epoch(
             train_counter.append(
                 (batch_idx * train_loader.batch_size)
                 + ((epoch - 1) * len(train_loader.dataset))
-            )
-            torch.save(
-                {
-                    "epoch": epoch,
-                    "model_state_dict": model.state_dict(),
-                    "optimizer_state_dict": optimizer.state_dict(),
-                },
-                checkpoint_path,
             )
 
     return running_loss / total, correct / total

@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 
 import torch
@@ -18,21 +19,67 @@ from main.src.utils import (
 )
 
 
+def save_best_model(network, test_acc: float, best_test_acc: float, model_path: Path):
+    if test_acc > best_test_acc:
+        model_path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(network.state_dict(), model_path)
+        return test_acc, True
+    return best_test_acc, False
+
+
+def parse_args(argv=None) -> argparse.Namespace:
+    base_dir = Path(__file__).resolve().parent
+    parser = argparse.ArgumentParser(description="Train a CNN on MNIST.")
+    parser.add_argument(
+        "--train_data_dir",
+        "--data-dir",
+        dest="train_data_dir",
+        type=Path,
+        default=base_dir / "data",
+        help="Directory for MNIST data.",
+    )
+    parser.add_argument(
+        "--outputs_dir",
+        "--outputs-dir",
+        dest="outputs_dir",
+        type=Path,
+        default=base_dir / "outputs",
+        help="Directory for metrics and plots.",
+    )
+    parser.add_argument(
+        "--model_path",
+        "--model-path",
+        dest="model_path",
+        type=Path,
+        default=base_dir / "model" / "mnist_cnn.pth",
+        help="Path for the best model weights.",
+    )
+    return parser.parse_args(argv)
+
+
 def main():
+    args = parse_args()
     batch_size = 512
     n_epochs = 20
     log_interval = 30
     random_seed = 1
 
-    base_dir = Path(__file__).resolve().parent
-    data_dir = base_dir / "data"
-    outputs_dir = base_dir / "outputs"
-    model_dir = base_dir / "model"
+    data_dir = args.train_data_dir
+    outputs_dir = args.outputs_dir
+    model_path = args.model_path
     outputs_dir.mkdir(parents=True, exist_ok=True)
-    model_dir.mkdir(parents=True, exist_ok=True)
 
     set_seed(random_seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # 显示设备信息，明确告知是否在 GPU 上训练
+    if device.type == "cuda":
+        try:
+            gpu_name = torch.cuda.get_device_name(0)
+        except Exception:
+            gpu_name = "Unknown GPU"
+        print(f"Using device: {device} (GPU) — {gpu_name}, count={torch.cuda.device_count()}")
+    else:
+        print(f"Using device: {device} (CPU)")
 
     transform = transforms.Compose(
         [
@@ -78,9 +125,6 @@ def main():
     test_losses = []
     test_counter = [i * len(train_loader.dataset) for i in range(n_epochs + 1)]
 
-    checkpoint_path = model_dir / "checkpoint.pth"
-    model_path = model_dir / "mnist_cnn.pth"
-    optimizer_path = model_dir / "optimizer.pth"
     metrics_path = outputs_dir / "metrics.csv"
     loss_curve_path = outputs_dir / "loss_curve.png"
     accuracy_curve_path = outputs_dir / "accuracy_curve.png"
@@ -94,6 +138,7 @@ def main():
     )
 
     metrics = []
+    best_test_acc = -1.0
     for epoch in range(1, n_epochs + 1):
         train_loss, train_acc = train_epoch(
             network,
@@ -104,9 +149,16 @@ def main():
             log_interval,
             train_losses,
             train_counter,
-            checkpoint_path,
         )
         test_loss, test_acc = evaluate(network, test_loader, device, test_losses)
+        best_test_acc, saved_best = save_best_model(
+            network,
+            test_acc,
+            best_test_acc,
+            model_path,
+        )
+        if saved_best:
+            print(f"Saved best model: {model_path} (test_acc={test_acc:.4f})")
         metrics.append(
             {
                 "epoch": epoch,
@@ -117,8 +169,6 @@ def main():
             }
         )
 
-    torch.save(network.state_dict(), model_path)
-    torch.save(optimizer.state_dict(), optimizer_path)
     save_metrics(metrics, metrics_path)
     plot_loss_curve(train_counter, train_losses, test_counter, test_losses, loss_curve_path)
     plot_accuracy_curve(metrics, accuracy_curve_path)
@@ -134,8 +184,6 @@ def main():
         sample_ground_truth_path,
         sample_predictions_path,
         model_path,
-        optimizer_path,
-        checkpoint_path,
     ]:
         print(f"- {path}")
 
