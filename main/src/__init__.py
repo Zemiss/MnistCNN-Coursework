@@ -1,0 +1,1 @@
+"""Shared MNIST CNN code."""

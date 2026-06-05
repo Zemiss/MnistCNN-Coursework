@@ -21,6 +21,10 @@ data/
 # Generated experiment artifacts
 outputs/*.pth
 outputs/*.pt
+model/*.pth
+model/*.pt
+main/model/*.pth
+main/model/*.pt
 
 # Temporary files
 *.tmp

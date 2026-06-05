@@ -5,10 +5,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
-from model import ConvNet
-from utils import (
+from main.src.model import ConvNet
+from main.src.utils import (
     evaluate,
-    generate_report,
     plot_accuracy_curve,
     plot_loss_curve,
     save_ground_truth_examples,
@@ -28,7 +27,9 @@ def main():
     base_dir = Path(__file__).resolve().parent
     data_dir = base_dir / "data"
     outputs_dir = base_dir / "outputs"
+    model_dir = base_dir / "model"
     outputs_dir.mkdir(parents=True, exist_ok=True)
+    model_dir.mkdir(parents=True, exist_ok=True)
 
     set_seed(random_seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -77,16 +78,15 @@ def main():
     test_losses = []
     test_counter = [i * len(train_loader.dataset) for i in range(n_epochs + 1)]
 
-    checkpoint_path = outputs_dir / "checkpoint.pth"
-    model_path = outputs_dir / "mnist_cnn.pth"
-    optimizer_path = outputs_dir / "optimizer.pth"
+    checkpoint_path = model_dir / "checkpoint.pth"
+    model_path = model_dir / "mnist_cnn.pth"
+    optimizer_path = model_dir / "optimizer.pth"
     metrics_path = outputs_dir / "metrics.csv"
     loss_curve_path = outputs_dir / "loss_curve.png"
     accuracy_curve_path = outputs_dir / "accuracy_curve.png"
     sample_predictions_path = outputs_dir / "sample_predictions.png"
-    report_path = outputs_dir / "report.md"
 
-    initial_test_loss, initial_test_acc = evaluate(
+    evaluate(
         network,
         test_loader,
         device,
@@ -123,19 +123,6 @@ def main():
     plot_loss_curve(train_counter, train_losses, test_counter, test_losses, loss_curve_path)
     plot_accuracy_curve(metrics, accuracy_curve_path)
     save_prediction_examples(network, example_data, device, sample_predictions_path)
-    generate_report(
-        metrics_path,
-        report_path,
-        {
-            "batch_size": batch_size,
-            "epochs": n_epochs,
-            "log_interval": log_interval,
-            "random_seed": random_seed,
-            "device": str(device),
-            "initial_test_loss": initial_test_loss,
-            "initial_test_acc": initial_test_acc,
-        },
-    )
 
     final_test_acc = metrics[-1]["test_acc"]
     print(f"Final Test Accuracy: {final_test_acc:.4f}")
@@ -149,7 +136,6 @@ def main():
         model_path,
         optimizer_path,
         checkpoint_path,
-        report_path,
     ]:
         print(f"- {path}")
 

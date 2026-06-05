@@ -4,40 +4,55 @@ This project follows the PyTorch Tutorial ConvNet MNIST workflow:
 
 https://pytorch-tutorial.readthedocs.io/en/latest/tutorial/chapter03_intermediate/3_2_1_cnn_convnet_mnist/
 
-It trains a CNN on MNIST and automatically generates the files needed for an experiment report.
+It trains a CNN on MNIST and generates metrics, plots, model weights, and checkpoint files for an experiment report.
 
-## Run
+## Run Training
 
 Use the `myenv` environment:
 
 ```powershell
-C:\Users\12445\miniconda3\envs\myenv\python.exe train.py
+C:\Users\12445\miniconda3\envs\myenv\python.exe -m main.train
 ```
+
+Training writes plots and metrics to `main/outputs/`, and trained model files to `main/model/`.
+
+## Test One Image
+
+```powershell
+C:\Users\12445\miniconda3\envs\myenv\python.exe -m main.test path\to\digit.png --model main\model\mnist_cnn.pth
+```
+
+The `--model` path is explicit so the command works from the project root.
 
 ## Files
 
 ```text
 .
-├── model.py
-├── train.py
-├── utils.py
-├── requirements.txt
-├── data/
-└── outputs/
-    ├── metrics.csv
-    ├── loss_curve.png
-    ├── accuracy_curve.png
-    ├── sample_ground_truth.png
-    ├── sample_predictions.png
-    ├── mnist_cnn.pth
-    ├── optimizer.pth
-    ├── checkpoint.pth
-    └── report.md
+|-- data/
+`-- main/
+    |-- train.py
+    |-- test.py
+    |-- requirements.txt
+    |-- src/
+    |   |-- __init__.py
+    |   |-- model.py
+    |   `-- utils.py
+    |-- model/
+    |   |-- mnist_cnn.pth
+    |   |-- optimizer.pth
+    |   `-- checkpoint.pth
+    `-- outputs/
+        |-- metrics.csv
+        |-- loss_curve.png
+        |-- accuracy_curve.png
+        |-- sample_ground_truth.png
+        |-- sample_predictions.png
+        `-- report.md
 ```
 
 ## Model
 
-`model.py` defines `ConvNet`:
+`main/src/model.py` defines `ConvNet`:
 
 | Layer | Definition | Output |
 | --- | --- | --- |
@@ -60,4 +75,4 @@ C:\Users\12445\miniconda3\envs\myenv\python.exe train.py
 | seed | 1 |
 | device | CUDA if available, otherwise CPU |
 
-After training, open `outputs/report.md` for the generated experiment report. It includes the dataset description, preprocessing, network structure, training method, loss function, metrics table, loss curve, accuracy curve, sample images, and result analysis.
+`main/outputs/report.md` is a manually written experiment report. Training does not overwrite it.
