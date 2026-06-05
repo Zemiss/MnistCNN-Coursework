@@ -29,19 +29,80 @@ cd C:\Users\12445\Desktop\Mnist-CNN
 pip install -r main\requirements.txt
 ```
 
+## 配置系统
+
+项目使用 YAML 配置文件 `main/configs/default.yaml` 作为默认配置。所有训练和测试参数都可在此文件中设置，也可通过命令行参数覆盖。
+
+### 配置文件位置
+
+```
+main/configs/default.yaml
+```
+
+### 配置优先级
+
+1. **命令行参数** (最高优先级)
+2. **配置文件** (默认值)
+3. **代码中的硬编码默认值** (最低优先级)
+
+### 修改配置的方法
+
+#### 方法 1：编辑配置文件
+直接修改 `main/configs/default.yaml` 中的参数：
+
+```yaml
+batch_size: 512
+n_epochs: 20
+train_data_dir: data
+outputs_dir: main\outputs
+model_path: main\model\mnist_cnn.pth
+```
+
+#### 方法 2：命令行参数（覆盖配置文件）
+使用命令行参数来临时覆盖配置文件中的值：
+
+```powershell
+python -m main.train --batch-size 256 --epochs 10 --train_data_dir custom_data --outputs_dir custom_outputs
+```
+
 ## 训练
+
+### 使用配置文件（推荐）
+使用默认配置文件运行训练：
+
+```powershell
+python -m main.train
+```
+
+### 使用命令行参数
+用命令行参数覆盖配置：
 
 ```powershell
 python -m main.train --train_data_dir data --outputs_dir main\outputs --model_path main\model\mnist_cnn.pth
 ```
 
-参数说明：
+### 使用命令行参数指定特定参数
+修改特定参数而保持其他参数使用配置文件的默认值：
 
-| 参数 | 作用 |
-| --- | --- |
-| `--train_data_dir` | MNIST 数据集保存位置 |
-| `--outputs_dir` | 训练指标、曲线图、样例图片输出位置 |
-| `--model_path` | best 模型权重保存位置 |
+```powershell
+# 只修改批大小和 epoch 数
+python -m main.train --batch-size 256 --epochs 15
+
+# 只修改输出目录
+python -m main.train --outputs_dir my_custom_outputs
+```
+
+### 可用的训练参数
+
+| 参数 | 命令行选项 | 配置键 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| 数据目录 | `--train_data_dir` / `--data-dir` | `train_data_dir` | `data` | MNIST 数据集保存位置 |
+| 输出目录 | `--outputs_dir` / `--outputs-dir` | `outputs_dir` | `main\outputs` | 训练指标、曲线图、样例图片输出位置 |
+| 模型路径 | `--model_path` / `--model-path` | `model_path` | `main\model\mnist_cnn.pth` | best 模型权重保存位置 |
+| 批大小 | `--batch-size` | `batch_size` | `512` | 每个批次的样本数 |
+| 训练轮数 | `--epochs` | `n_epochs` | `20` | 训练的总轮数 |
+| 日志间隔 | `--log-interval` | `log_interval` | `30` | 打印日志的间隔 |
+| 随机种子 | `--seed` | `random_seed` | `1` | 随机种子，用于重现结果 |
 
 训练过程中只保存测试准确率最高的模型，文件为：
 
@@ -55,35 +116,58 @@ main\model\mnist_cnn.pth
 
 测试脚本接收一个图片文件夹，会逐张预测其中的图片。支持的图片格式包括 `.png`、`.jpg`、`.jpeg`、`.bmp`。
 
+### 使用配置文件运行测试
+先在 `main/configs/default.yaml` 中设置 `test_data_dir`：
+
+```yaml
+test_data_dir: path/to/digit_images
+```
+
+然后运行：
+```powershell
+python -m main.test
+```
+
+### 使用命令行参数运行测试
+直接指定测试数据目录：
+
 ```powershell
 python -m main.test --test_data_dir path\to\digit_images --model_path main\model\mnist_cnn.pth
 ```
 
 把 `path\to\digit_images` 换成你的测试图片文件夹路径。
 
-参数说明：
+### 可用的测试参数
 
-| 参数 | 作用 |
-| --- | --- |
-| `--test_data_dir` | 测试图片文件夹 |
-| `--model_path` | 要加载的模型权重 |
+| 参数 | 命令行选项 | 配置键 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| 数据目录 | `--test_data_dir` / `--data-dir` | `test_data_dir` | (必需) | 测试图片文件夹或 MNIST 数据集目录 |
+| 模型路径 | `--model_path` / `--model` | `model_path` | `main\model\mnist_cnn.pth` | 要加载的模型权重 |
+| 使用 MNIST | `--use-mnist` | `use_mnist` | `false` | 使用 MNIST 数据集进行测试 |
+| 样本数量 | `--num-samples` | `num_samples` | `10` | 测试样本数量（仅用于 MNIST） |
 
 ## 测试 MNIST 数据集
 
-也可以直接用 MNIST 测试集来测试模型，使用 `--use-mnist` 标志：
+也可以直接用 MNIST 测试集来测试模型。
 
+### 使用配置文件
+在 `main/configs/default.yaml` 中设置：
+
+```yaml
+test_data_dir: data
+use_mnist: true
+num_samples: 20
+```
+
+然后运行：
+```powershell
+python -m main.test
+```
+
+### 使用命令行参数
 ```powershell
 python -m main.test --test_data_dir data --model_path main\model\mnist_cnn.pth --use-mnist --num-samples 20
 ```
-
-参数说明：
-
-| 参数 | 作用 |
-| --- | --- |
-| `--test_data_dir` | 数据集保存位置 |
-| `--model_path` | 要加载的模型权重 |
-| `--use-mnist` | 使用 MNIST 数据集进行测试 |
-| `--num-samples` | 测试样本数量（默认 10） |
 
 ## 常用完整命令
 
@@ -94,11 +178,15 @@ cd C:\Users\12445\Desktop\Mnist-CNN
 
 **训练：**
 
+python -m main.train
+
 ```
-python -m main.train --train_data_dir data --outputs_dir main\outputs --model_path main\model\mnist_cnn.pth
+python -m main.train --batch-size 256 --epochs 10 --outputs_dir custom_outputs
 ```
 
-**测试（用 MNIST 数据集）：**
+**测试：**
+
+python -m main.test
 
 ```
 python -m main.test --test_data_dir data --model_path main\model\mnist_cnn.pth --use-mnist --num-samples 20

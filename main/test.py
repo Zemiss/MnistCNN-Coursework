@@ -5,6 +5,7 @@ import torch
 from PIL import Image
 from torchvision import datasets, transforms
 
+from main.src.config import convert_paths, load_config, merge_config_with_args
 from main.src.model import ConvNet
 
 
@@ -65,13 +66,27 @@ def list_image_paths(test_data_dir: Path) -> list[Path]:
     )
 
 
-def parse_args(argv=None) -> argparse.Namespace:
+def parse_args(argv=None, config: dict = None) -> argparse.Namespace:
+    """解析命令行参数，支持配置文件默认值"""
+    if config is None:
+        config = {}
+    
     base_dir = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(description="Test a trained MNIST CNN on a folder of images or MNIST dataset.")
+    
+    # 从配置中获取默认值
+    test_data_dir_default = config.get("test_data_dir", None)
+    model_path_default = config.get("model_path", base_dir / "model" / "mnist_cnn.pth")
+    use_mnist_default = config.get("use_mnist", False)
+    num_samples_default = config.get("num_samples", 10)
+    
     parser.add_argument(
         "--test_data_dir",
+        "--data-dir",
+        dest="test_data_dir",
         type=Path,
-        required=True,
+        default=test_data_dir_default,
+        required=(test_data_dir_default is None),
         help="Directory of images to classify, or MNIST dataset directory (when --use-mnist is set).",
     )
     parser.add_argument(
@@ -79,34 +94,59 @@ def parse_args(argv=None) -> argparse.Namespace:
         "--model",
         dest="model_path",
         type=Path,
-        default=base_dir / "model" / "mnist_cnn.pth",
+        default=model_path_default,
         help="Path to the trained model weights.",
     )
     parser.add_argument(
         "--use-mnist",
         action="store_true",
+        default=use_mnist_default,
         help="Load images from MNIST dataset instead of image files.",
     )
     parser.add_argument(
         "--num-samples",
         type=int,
-        default=10,
+        default=num_samples_default,
         help="Number of samples to test (only with --use-mnist).",
     )
     return parser.parse_args(argv)
 
 
 def main() -> None:
-    args = parse_args()
-    if not args.test_data_dir.is_dir():
-        raise FileNotFoundError(f"Test data directory not found: {args.test_data_dir}")
-    if not args.model_path.is_file():
-        raise FileNotFoundError(f"Model not found: {args.model_path}")
+    # 加载 YAML 配置（返回配置字典和 main_dir）
+    config, main_dir = load_config()
+    
+    # 将配置中的路径字符串转换为相对于 main_dir 的绝对路径
+    path_keys = ["test_data_dir", "model_path"]
+    config = convert_paths(config, path_keys, main_dir)
+    
+    # 解析命令行参数
+    args = parse_args(config=config)
+    
+    # 合并配置和命令行参数（命令行参数优先）
+    final_config = merge_config_with_args(config, args)
+    
+    # 从最终配置中提取参数
+    test_data_dir = final_config.get("test_data_dir", None)
+    model_path = final_config.get("model_path", None)
+    use_mnist = final_config.get("use_mnist", False)
+    num_samples = final_config.get("num_samples", 10)
+    
+    # 确保都是正确的类型
+    test_data_dir = Path(test_data_dir) if test_data_dir and not isinstance(test_data_dir, Path) else test_data_dir
+    model_path = Path(model_path) if model_path and not isinstance(model_path, Path) else model_path
+    
+    if not test_data_dir:
+        raise ValueError("--test_data_dir is required or must be set in config")
+    if not test_data_dir.is_dir():
+        raise FileNotFoundError(f"Test data directory not found: {test_data_dir}")
+    if not model_path or not model_path.is_file():
+        raise FileNotFoundError(f"Model not found: {model_path}")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    if args.use_mnist:
+    if use_mnist:
         # Load from MNIST dataset
         transform = transforms.Compose(
             [
@@ -115,33 +155,33 @@ def main() -> None:
             ]
         )
         test_dataset = datasets.MNIST(
-            args.test_data_dir,
+            test_data_dir,
             train=False,
             download=True,
             transform=transform,
         )
-        num_samples = min(args.num_samples, len(test_dataset))
+        num_samples_to_use = min(num_samples, len(test_dataset))
         correct = 0
-        print(f"Testing on {num_samples} MNIST samples:\n")
-        for i in range(num_samples):
+        print(f"Testing on {num_samples_to_use} MNIST samples:\n")
+        for i in range(num_samples_to_use):
             image_tensor, true_label = test_dataset[i]
-            prediction, probabilities, label = predict_mnist(image_tensor, true_label, args.model_path, device)
+            prediction, probabilities, label = predict_mnist(image_tensor, true_label, model_path, device)
             probability = probabilities[prediction]
             is_correct = "✓" if prediction == label else "✗"
             print(f"Sample {i+1}: true_label={label}, predicted={prediction}, probability={probability:.4f} {is_correct}")
             if prediction == label:
                 correct += 1
-        accuracy = correct / num_samples
-        print(f"\nAccuracy: {correct}/{num_samples} ({accuracy:.2%})")
+        accuracy = correct / num_samples_to_use
+        print(f"\nAccuracy: {correct}/{num_samples_to_use} ({accuracy:.2%})")
     else:
         # Load from image files
-        image_paths = list_image_paths(args.test_data_dir)
+        image_paths = list_image_paths(test_data_dir)
         if not image_paths:
-            raise FileNotFoundError(f"No supported images found in: {args.test_data_dir}")
+            raise FileNotFoundError(f"No supported images found in: {test_data_dir}")
 
         print(f"Testing on {len(image_paths)} images:\n")
         for image_path in image_paths:
-            prediction, probabilities = predict(image_path, args.model_path, device)
+            prediction, probabilities = predict(image_path, model_path, device)
             probability = probabilities[prediction]
             print(f"{image_path.name}: predicted={prediction}, probability={probability:.4f}")
 

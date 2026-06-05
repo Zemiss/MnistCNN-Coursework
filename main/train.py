@@ -6,6 +6,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
+from main.src.config import convert_paths, load_config, merge_config_with_args
 from main.src.model import ConvNet
 from main.src.utils import (
     evaluate,
@@ -27,15 +28,29 @@ def save_best_model(network, test_acc: float, best_test_acc: float, model_path: 
     return best_test_acc, False
 
 
-def parse_args(argv=None) -> argparse.Namespace:
+def parse_args(argv=None, config: dict = None) -> argparse.Namespace:
+    """解析命令行参数，支持配置文件默认值"""
+    if config is None:
+        config = {}
+    
     base_dir = Path(__file__).resolve().parent
     parser = argparse.ArgumentParser(description="Train a CNN on MNIST.")
+    
+    # 从配置中获取默认值
+    train_data_dir_default = config.get("train_data_dir", base_dir / "data")
+    outputs_dir_default = config.get("outputs_dir", base_dir / "outputs")
+    model_path_default = config.get("model_path", base_dir / "model" / "mnist_cnn.pth")
+    batch_size_default = config.get("batch_size", 512)
+    n_epochs_default = config.get("n_epochs", 20)
+    log_interval_default = config.get("log_interval", 30)
+    random_seed_default = config.get("random_seed", 1)
+    
     parser.add_argument(
         "--train_data_dir",
         "--data-dir",
         dest="train_data_dir",
         type=Path,
-        default=base_dir / "data",
+        default=train_data_dir_default,
         help="Directory for MNIST data.",
     )
     parser.add_argument(
@@ -43,7 +58,7 @@ def parse_args(argv=None) -> argparse.Namespace:
         "--outputs-dir",
         dest="outputs_dir",
         type=Path,
-        default=base_dir / "outputs",
+        default=outputs_dir_default,
         help="Directory for metrics and plots.",
     )
     parser.add_argument(
@@ -51,23 +66,75 @@ def parse_args(argv=None) -> argparse.Namespace:
         "--model-path",
         dest="model_path",
         type=Path,
-        default=base_dir / "model" / "mnist_cnn.pth",
+        default=model_path_default,
         help="Path for the best model weights.",
+    )
+    parser.add_argument(
+        "--batch-size",
+        dest="batch_size",
+        type=int,
+        default=batch_size_default,
+        help="Batch size for training.",
+    )
+    parser.add_argument(
+        "--epochs",
+        dest="n_epochs",
+        type=int,
+        default=n_epochs_default,
+        help="Number of epochs to train.",
+    )
+    parser.add_argument(
+        "--log-interval",
+        dest="log_interval",
+        type=int,
+        default=log_interval_default,
+        help="Log interval.",
+    )
+    parser.add_argument(
+        "--seed",
+        dest="random_seed",
+        type=int,
+        default=random_seed_default,
+        help="Random seed.",
     )
     return parser.parse_args(argv)
 
 
 def main():
-    args = parse_args()
-    batch_size = 512
-    n_epochs = 20
-    log_interval = 30
-    random_seed = 1
+    # 加载 YAML 配置（返回配置字典和 main_dir）
+    config, main_dir = load_config()
+    
+    # 将配置中的路径字符串转换为相对于 main_dir 的绝对路径
+    path_keys = ["train_data_dir", "outputs_dir", "model_path"]
+    config = convert_paths(config, path_keys, main_dir)
+    
+    # 解析命令行参数
+    args = parse_args(config=config)
+    
+    # 合并配置和命令行参数（命令行参数优先）
+    final_config = merge_config_with_args(config, args)
+    
+    # 从最终配置中提取所有参数
+    batch_size = final_config.get("batch_size", 512)
+    n_epochs = final_config.get("n_epochs", 20)
+    log_interval = final_config.get("log_interval", 30)
+    random_seed = final_config.get("random_seed", 1)
 
-    data_dir = args.train_data_dir
-    outputs_dir = args.outputs_dir
-    model_path = args.model_path
+    data_dir = final_config.get("train_data_dir")
+    outputs_dir = final_config.get("outputs_dir")
+    model_path = final_config.get("model_path")
+    
+    # 确保都是 Path 对象
+    data_dir = Path(data_dir) if data_dir and not isinstance(data_dir, Path) else data_dir
+    outputs_dir = Path(outputs_dir) if outputs_dir and not isinstance(outputs_dir, Path) else outputs_dir
+    model_path = Path(model_path) if model_path and not isinstance(model_path, Path) else model_path
+    
+    if not data_dir or not outputs_dir or not model_path:
+        raise ValueError("Missing required configuration: train_data_dir, outputs_dir, or model_path")
+    
     outputs_dir.mkdir(parents=True, exist_ok=True)
+
+    set_seed(random_seed)
 
     set_seed(random_seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
