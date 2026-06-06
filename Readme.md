@@ -7,28 +7,24 @@
 
 参考教程：
 
-https://pytorch-tutorial.readthedocs.io/en/latest/tutorial/chapter03_intermediate/3_2_1_cnn_convnet_mnist/
+[MNIST数据集手写数字识别](https://pytorch-tutorial.readthedocs.io/en/latest/tutorial/chapter03_intermediate/3_2_1_cnn_convnet_mnist/)
 
-## 环境
+## 目录
 
-项目使用 Conda 环境 `myenv`。建议先进入项目根目录再运行脚本：
+- [环境配置](#环境配置)
+- [配置系统](#配置系统)
+- [训练](#训练)
+- [测试](#测试)
+- [项目结构](#项目结构)
+- [模型结构](#模型结构)
+- [训练配置](#训练配置)
+- [输出文件](#输出文件)
 
-```powershell
-conda activate myenv
-cd C:\Users\12445\Desktop\Mnist-CNN
-```
 
-如果 `conda activate myenv` 不能用，也可以直接使用环境里的 Python：
-
-```powershell
-C:\Users\12445\miniconda3\envs\myenv\python.exe
-```
-
-## 安装依赖
+## 环境配置
 
 ```powershell
-conda activate myenv
-cd C:\Users\12445\Desktop\Mnist-CNN
+conda create -n mnist-cnn python=3.9 -y
 pip install -r requirements.txt
 ```
 
@@ -36,22 +32,9 @@ pip install -r requirements.txt
 
 项目使用 YAML 配置文件 `configs/default.yaml` 作为默认配置。所有训练和测试参数都可在此文件中设置，也可通过命令行参数覆盖。
 
-### 配置文件位置
+**修改配置的方法：**
 
-```
-configs/default.yaml
-```
-
-### 配置优先级
-
-1. **命令行参数** (最高优先级)
-2. **配置文件** (默认值)
-3. **代码中的硬编码默认值** (最低优先级)
-
-### 修改配置的方法
-
-#### 方法 1：编辑配置文件
-直接修改 `configs/default.yaml` 中的参数：
+1. 直接修改 `configs/default.yaml` 中的参数：
 
 ```yaml
 paths:
@@ -67,8 +50,7 @@ train:
   seed: 1
 ```
 
-#### 方法 2：命令行参数（覆盖配置文件）
-使用命令行参数来临时覆盖配置文件中的值：
+2. 使用命令行参数来临时覆盖配置文件中的值：
 
 ```powershell
 python train.py --batch-size 256 --epochs 10 --train-data-dir custom_data --outputs-dir custom_outputs
@@ -76,140 +58,35 @@ python train.py --batch-size 256 --epochs 10 --train-data-dir custom_data --outp
 
 ## 训练
 
-### 使用配置文件（推荐）
-使用默认配置文件运行训练：
+**使用配置文件:**
 
 ```powershell
 python train.py
 ```
 
-### 使用命令行参数
-用命令行参数覆盖配置：
+**使用命令行参数:**
 
 ```powershell
 python train.py --train-data-dir data --outputs-dir outputs --model-path model\mnist_cnn.pth
 ```
 
-### 使用命令行参数指定特定参数
-修改特定参数而保持其他参数使用配置文件的默认值：
+## 测试 
+
+### MNIST 数据集
 
 ```powershell
-# 只修改批大小和 epoch 数
-python train.py --batch-size 256 --epochs 15
-
-# 只修改输出目录
-python train.py --outputs-dir my_custom_outputs
+python test.py --test-data-dir data --model-path model\mnist_cnn.pth --use-mnist --num-samples 20
 ```
 
-### 可用的训练参数
-
-| 参数 | 命令行选项 | 配置键 | 默认值 | 说明 |
-| --- | --- | --- | --- | --- |
-| 数据目录 | `--train-data-dir` | `paths.train_data_dir` | `data` | MNIST 数据集保存位置 |
-| 输出目录 | `--outputs-dir` | `paths.outputs_dir` | `outputs` | 训练指标、曲线图、样例图片输出位置 |
-| 模型路径 | `--model-path` | `paths.model_path` | `model\mnist_cnn.pth` | best 模型权重保存位置 |
-| 批大小 | `--batch-size` | `train.batch_size` | `512` | 每个批次的样本数 |
-| 训练轮数 | `--epochs` | `train.epochs` | `20` | 训练的总轮数 |
-| 日志间隔 | `--log-interval` | `train.log_interval` | `30` | 打印日志的间隔 |
-| 随机种子 | `--seed` | `train.seed` | `1` | 随机种子，用于重现结果 |
-
-训练过程中只保存测试准确率最高的模型，文件为：
-
-```text
-model\mnist_cnn.pth
-```
-
-不会再保存 `optimizer.pth` 或 `checkpoint.pth`。
-
-## 测试图片文件夹
+### 图片文件夹
 
 测试脚本接收一个图片文件夹，会逐张预测其中的图片。支持的图片格式包括 `.png`、`.jpg`、`.jpeg`、`.bmp`。
 
-### 使用配置文件运行测试
-先在 `configs/default.yaml` 中设置 `paths.test_data_dir`：
-
-```yaml
-paths:
-  test_data_dir: path/to/digit_images
-```
-
-然后运行：
-```powershell
-python test.py
-```
-
-### 使用命令行参数运行测试
-直接指定测试数据目录：
-
 ```powershell
 python test.py --test-data-dir path\to\digit_images --model-path model\mnist_cnn.pth
 ```
 
-把 `path\to\digit_images` 换成你的测试图片文件夹路径。
-
-### 可用的测试参数
-
-| 参数 | 命令行选项 | 配置键 | 默认值 | 说明 |
-| --- | --- | --- | --- | --- |
-| 数据目录 | `--test-data-dir` | `paths.test_data_dir` | (必需) | 测试图片文件夹或 MNIST 数据集目录 |
-| 模型路径 | `--model-path` | `paths.model_path` | `model\mnist_cnn.pth` | 要加载的模型权重 |
-| 使用 MNIST | `--use-mnist` / `--no-use-mnist` | `test.use_mnist` | `false` | 使用 MNIST 数据集进行测试 |
-| 样本数量 | `--num-samples` | `test.num_samples` | `10` | 测试样本数量（仅用于 MNIST） |
-
-## 测试 MNIST 数据集
-
-也可以直接用 MNIST 测试集来测试模型。
-
-### 使用配置文件
-在 `configs/default.yaml` 中设置：
-
-```yaml
-paths:
-  test_data_dir: data
-
-test:
-  use_mnist: true
-  num_samples: 20
-```
-
-然后运行：
-```powershell
-python test.py
-```
-
-### 使用命令行参数
-```powershell
-python test.py --test-data-dir data --model-path model\mnist_cnn.pth --use-mnist --num-samples 20
-```
-
-## 常用完整命令
-
-```
-conda activate myenv
-cd C:\Users\12445\Desktop\Mnist-CNN
-```
-
-**训练：**
-
-python train.py
-
-```
-python train.py --batch-size 256 --epochs 10 --outputs-dir custom_outputs
-```
-
-**测试：**
-
-python test.py
-
-```
-python test.py --test-data-dir data --model-path model\mnist_cnn.pth --use-mnist --num-samples 20
-```
-
-**测试（用自己的图片）：**
-
-```
-python test.py --test-data-dir path\to\digit_images --model-path model\mnist_cnn.pth
-```
+把 `path\to\digit_images` 换成测试图片文件夹路径。
 
 
 ## 项目结构
