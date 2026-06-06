@@ -11,21 +11,33 @@
 
 ## 目录
 
-- [环境配置](#环境配置)
-- [配置系统](#配置系统)
-- [训练](#训练)
-- [测试](#测试)
-- [项目结构](#项目结构)
-- [模型结构](#模型结构)
-- [训练配置](#训练配置)
-- [输出文件](#输出文件)
+- [深度学习原理课程作业：MNIST-CNN](#深度学习原理课程作业mnist-cnn)
+  - [目录](#目录)
+  - [环境配置](#环境配置)
+  - [配置系统](#配置系统)
+  - [训练](#训练)
+  - [测试](#测试)
+    - [MNIST 数据集](#mnist-数据集)
+    - [图片文件夹](#图片文件夹)
+  - [项目结构](#项目结构)
+  - [模型结构](#模型结构)
+  - [训练配置](#训练配置)
+  - [输出文件](#输出文件)
 
 
 ## 环境配置
 
+本项目使用 Python 3.11，主要依赖包括 `pandas`、`torch`、`torchvision`、`matplotlib` 、`pillow` 和 `PyYAML`。
+
 ```powershell
-conda create -n mnist-cnn python=3.9 -y
+conda create -n mnist-cnn python=3.11 -y
 pip install -r requirements.txt
+```
+
+数据文件需要放在本地 `data/` 目录下，例如：
+
+```text
+data/MNIST
 ```
 
 ## 配置系统
