@@ -1,5 +1,5 @@
 paths:
-  train_data_dir: ../data
+  train_data_dir: data
   outputs_dir: outputs
   model_path: model/mnist_cnn.pth
   test_data_dir: null
@@ -10,7 +10,7 @@ train:
   log_interval: 30
   seed: 1
 
-test:
+test: 
   use_mnist: false
   num_samples: 10
 

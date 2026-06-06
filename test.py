@@ -5,8 +5,8 @@ import torch
 from PIL import Image
 from torchvision import datasets, transforms
 
-from main.src.config import convert_section_paths, get_section, load_config, merge_config_with_args
-from main.src.model import ConvNet
+from src.config import convert_section_paths, get_section, load_config, merge_config_with_args
+from src.model import ConvNet
 
 
 IMAGE_EXTENSIONS = {".bmp", ".jpeg", ".jpg", ".png"}

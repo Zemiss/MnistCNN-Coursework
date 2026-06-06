@@ -1,6 +1,9 @@
-# MNIST CNN 手写数字识别
+# 深度学习原理课程作业：MNIST-CNN
 
-这个项目用 PyTorch 训练一个简单的卷积神经网络，用于识别 MNIST 手写数字。训练脚本会保存训练指标、曲线图和测试准确率最高的模型权重。
+![Python >=3.10](https://img.shields.io/badge/Python->=3.10-blue.svg)
+![PyTorch >=2.2](https://img.shields.io/badge/PyTorch->=2.2-yellow.svg)
+
+>本项目用 PyTorch 训练一个简单的卷积神经网络，用于识别 MNIST 手写数字。训练脚本会保存训练指标、曲线图和测试准确率最高的模型权重。
 
 参考教程：
 
@@ -26,17 +29,17 @@ C:\Users\12445\miniconda3\envs\myenv\python.exe
 ```powershell
 conda activate myenv
 cd C:\Users\12445\Desktop\Mnist-CNN
-pip install -r main\requirements.txt
+pip install -r requirements.txt
 ```
 
 ## 配置系统
 
-项目使用 YAML 配置文件 `main/configs/default.yaml` 作为默认配置。所有训练和测试参数都可在此文件中设置，也可通过命令行参数覆盖。
+项目使用 YAML 配置文件 `configs/default.yaml` 作为默认配置。所有训练和测试参数都可在此文件中设置，也可通过命令行参数覆盖。
 
 ### 配置文件位置
 
 ```
-main/configs/default.yaml
+configs/default.yaml
 ```
 
 ### 配置优先级
@@ -48,11 +51,11 @@ main/configs/default.yaml
 ### 修改配置的方法
 
 #### 方法 1：编辑配置文件
-直接修改 `main/configs/default.yaml` 中的参数：
+直接修改 `configs/default.yaml` 中的参数：
 
 ```yaml
 paths:
-  train_data_dir: ../data
+  train_data_dir: data
   outputs_dir: outputs
   model_path: model/mnist_cnn.pth
   test_data_dir: null
@@ -68,7 +71,7 @@ train:
 使用命令行参数来临时覆盖配置文件中的值：
 
 ```powershell
-python -m main.train --batch-size 256 --epochs 10 --train-data-dir custom_data --outputs-dir custom_outputs
+python train.py --batch-size 256 --epochs 10 --train-data-dir custom_data --outputs-dir custom_outputs
 ```
 
 ## 训练
@@ -77,14 +80,14 @@ python -m main.train --batch-size 256 --epochs 10 --train-data-dir custom_data -
 使用默认配置文件运行训练：
 
 ```powershell
-python -m main.train
+python train.py
 ```
 
 ### 使用命令行参数
 用命令行参数覆盖配置：
 
 ```powershell
-python -m main.train --train-data-dir data --outputs-dir main\outputs --model-path main\model\mnist_cnn.pth
+python train.py --train-data-dir data --outputs-dir outputs --model-path model\mnist_cnn.pth
 ```
 
 ### 使用命令行参数指定特定参数
@@ -92,17 +95,17 @@ python -m main.train --train-data-dir data --outputs-dir main\outputs --model-pa
 
 ```powershell
 # 只修改批大小和 epoch 数
-python -m main.train --batch-size 256 --epochs 15
+python train.py --batch-size 256 --epochs 15
 
 # 只修改输出目录
-python -m main.train --outputs-dir my_custom_outputs
+python train.py --outputs-dir my_custom_outputs
 ```
 
 ### 可用的训练参数
 
 | 参数 | 命令行选项 | 配置键 | 默认值 | 说明 |
 | --- | --- | --- | --- | --- |
-| 数据目录 | `--train-data-dir` | `paths.train_data_dir` | `../data` | MNIST 数据集保存位置 |
+| 数据目录 | `--train-data-dir` | `paths.train_data_dir` | `data` | MNIST 数据集保存位置 |
 | 输出目录 | `--outputs-dir` | `paths.outputs_dir` | `outputs` | 训练指标、曲线图、样例图片输出位置 |
 | 模型路径 | `--model-path` | `paths.model_path` | `model\mnist_cnn.pth` | best 模型权重保存位置 |
 | 批大小 | `--batch-size` | `train.batch_size` | `512` | 每个批次的样本数 |
@@ -113,7 +116,7 @@ python -m main.train --outputs-dir my_custom_outputs
 训练过程中只保存测试准确率最高的模型，文件为：
 
 ```text
-main\model\mnist_cnn.pth
+model\mnist_cnn.pth
 ```
 
 不会再保存 `optimizer.pth` 或 `checkpoint.pth`。
@@ -123,7 +126,7 @@ main\model\mnist_cnn.pth
 测试脚本接收一个图片文件夹，会逐张预测其中的图片。支持的图片格式包括 `.png`、`.jpg`、`.jpeg`、`.bmp`。
 
 ### 使用配置文件运行测试
-先在 `main/configs/default.yaml` 中设置 `paths.test_data_dir`：
+先在 `configs/default.yaml` 中设置 `paths.test_data_dir`：
 
 ```yaml
 paths:
@@ -132,14 +135,14 @@ paths:
 
 然后运行：
 ```powershell
-python -m main.test
+python test.py
 ```
 
 ### 使用命令行参数运行测试
 直接指定测试数据目录：
 
 ```powershell
-python -m main.test --test-data-dir path\to\digit_images --model-path main\model\mnist_cnn.pth
+python test.py --test-data-dir path\to\digit_images --model-path model\mnist_cnn.pth
 ```
 
 把 `path\to\digit_images` 换成你的测试图片文件夹路径。
@@ -158,11 +161,11 @@ python -m main.test --test-data-dir path\to\digit_images --model-path main\model
 也可以直接用 MNIST 测试集来测试模型。
 
 ### 使用配置文件
-在 `main/configs/default.yaml` 中设置：
+在 `configs/default.yaml` 中设置：
 
 ```yaml
 paths:
-  test_data_dir: ../data
+  test_data_dir: data
 
 test:
   use_mnist: true
@@ -171,12 +174,12 @@ test:
 
 然后运行：
 ```powershell
-python -m main.test
+python test.py
 ```
 
 ### 使用命令行参数
 ```powershell
-python -m main.test --test-data-dir data --model-path main\model\mnist_cnn.pth --use-mnist --num-samples 20
+python test.py --test-data-dir data --model-path model\mnist_cnn.pth --use-mnist --num-samples 20
 ```
 
 ## 常用完整命令
@@ -188,24 +191,24 @@ cd C:\Users\12445\Desktop\Mnist-CNN
 
 **训练：**
 
-python -m main.train
+python train.py
 
 ```
-python -m main.train --batch-size 256 --epochs 10 --outputs-dir custom_outputs
+python train.py --batch-size 256 --epochs 10 --outputs-dir custom_outputs
 ```
 
 **测试：**
 
-python -m main.test
+python test.py
 
 ```
-python -m main.test --test-data-dir data --model-path main\model\mnist_cnn.pth --use-mnist --num-samples 20
+python test.py --test-data-dir data --model-path model\mnist_cnn.pth --use-mnist --num-samples 20
 ```
 
 **测试（用自己的图片）：**
 
 ```
-python -m main.test --test-data-dir path\to\digit_images --model-path main\model\mnist_cnn.pth
+python test.py --test-data-dir path\to\digit_images --model-path model\mnist_cnn.pth
 ```
 
 
@@ -214,27 +217,29 @@ python -m main.test --test-data-dir path\to\digit_images --model-path main\model
 ```text
 .
 |-- data/
-`-- main/
-    |-- train.py
-    |-- test.py
-    |-- requirements.txt
-    |-- src/
-    |   |-- __init__.py
-    |   |-- model.py
-    |   `-- utils.py
-    |-- model/
-    |   `-- mnist_cnn.pth
-    `-- outputs/
-        |-- metrics.csv
-        |-- loss_curve.png
-        |-- accuracy_curve.png
-        |-- sample_ground_truth.png
-        `-- sample_predictions.png
+|-- train.py
+|-- test.py
+|-- requirements.txt
+|-- configs/
+|   `-- default.yaml
+|-- src/
+|   |-- __init__.py
+|   |-- config.py
+|   |-- model.py
+|   `-- utils.py
+|-- model/
+|   `-- mnist_cnn.pth
+`-- outputs/
+    |-- metrics.csv
+    |-- loss_curve.png
+    |-- accuracy_curve.png
+    |-- sample_ground_truth.png
+    `-- sample_predictions.png
 ```
 
 ## 模型结构
 
-`main/src/model.py` 定义了 `ConvNet`：
+`src/model.py` 定义了 `ConvNet`：
 
 | 层 | 定义 | 输出 |
 | --- | --- | --- |
@@ -261,9 +266,9 @@ python -m main.test --test-data-dir path\to\digit_images --model-path main\model
 
 | 文件 | 说明 |
 | --- | --- |
-| `main\model\mnist_cnn.pth` | 测试准确率最高的模型权重 |
-| `main\outputs\metrics.csv` | 每个 epoch 的训练和测试指标 |
-| `main\outputs\loss_curve.png` | loss 曲线 |
-| `main\outputs\accuracy_curve.png` | accuracy 曲线 |
-| `main\outputs\sample_ground_truth.png` | 测试样例真实标签 |
-| `main\outputs\sample_predictions.png` | 模型预测样例 |
+| `model\mnist_cnn.pth` | 测试准确率最高的模型权重 |
+| `outputs\metrics.csv` | 每个 epoch 的训练和测试指标 |
+| `outputs\loss_curve.png` | loss 曲线 |
+| `outputs\accuracy_curve.png` | accuracy 曲线 |
+| `outputs\sample_ground_truth.png` | 测试样例真实标签 |
+| `outputs\sample_predictions.png` | 模型预测样例 |

@@ -6,9 +6,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
-from main.src.config import convert_section_paths, get_section, load_config, merge_config_with_args
-from main.src.model import ConvNet
-from main.src.utils import (
+from src.config import convert_section_paths, get_section, load_config, merge_config_with_args
+from src.model import ConvNet
+from src.utils import (
     evaluate,
     plot_accuracy_curve,
     plot_loss_curve,
