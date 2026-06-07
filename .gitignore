@@ -18,8 +18,6 @@ Thumbs.db
 # MNIST downloaded data
 data/
 
-docs/
-
 # Generated experiment artifacts
 outputs/*.pth
 outputs/*.pt
